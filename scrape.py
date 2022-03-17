@@ -6,6 +6,8 @@ import time
 from tqdm import tqdm
 import configuration as config
 import threading
+import matplotlib.pyplot as plt
+import json
 
 
 class GetTweets:
@@ -50,6 +52,26 @@ class Mapping:
     def _treat_dots(self):
         pass
 
+    def plot_dots(self):
+        dots = self.dots[["retweetCount", "coordinates"]].dropna()
+        fig, ax = plt.subplots()
 
-# For a given database of user that don't seem to hide their precise location, try retrieving all their tweets
-# and find info about their location lol
+        for k, df_line in enumerate(dots.itertuples()):
+            rt_count, coordinates = int(np.around(df_line.retweetCount)), df_line.coordinates
+
+            coordinates = coordinates.replace("\'", "\"")
+            coordinates = json.loads(coordinates)
+
+            longitude, latitude = coordinates.values()
+
+            plt.scatter(longitude, latitude, color='purple')
+
+            if k > 1000:
+                break
+
+        plt.show()
+
+        #for i in range(len_values):
+            #    ax.scatter(x[i], y[i], color='purple')
+
+Mapping().plot_dots()

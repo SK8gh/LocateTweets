@@ -86,4 +86,4 @@ dictionary = {1: "maison",
               84: "lol",
               85: "mdr"}
 
-path_requested_tweets = "/Users/miller/Desktop/Twitter/requested_tweets.csv"
+path_requested_tweets = "/Users/miller/Desktop/LocateTweets/requested_tweets.csv"
