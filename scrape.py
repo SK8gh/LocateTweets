@@ -3,7 +3,6 @@ import snscrape.modules.twitter as st
 import itertools
 import numpy as np
 import time
-from tqdm import tqdm
 import configuration as config
 import threading
 import matplotlib.pyplot as plt
@@ -13,7 +12,7 @@ import json
 class GetTweets:
     def __init__(self):
         self._request_number = 2000
-        self._words = config.dictionary
+        self._words = config.dictionary["language:"].iloc[2:].dropna()
         self._loc = '48.8565, 2.3524, 0.1km'
         self._df_columns = ["date", "content", "retweetCount", "coordinates"]
 
@@ -32,7 +31,7 @@ class GetTweets:
     def run_threads(self):
         threads = []
         for i in range(len(self._words)):
-            word = self._words[i+1]
+            word = self._words.iloc[i]
             t = threading.Thread(target=self._thread_request, args=[word], daemon=True)
             threads.append(t)
 
@@ -47,31 +46,43 @@ class GetTweets:
 
 class Mapping:
     def __init__(self):
-        self.dots = pd.read_csv(config.path_requested_tweets)
+        self.dots = pd.read_csv(config.path_requested_tweets)[["retweetCount", "coordinates"]]
+        self.dots_dis = pd.DataFrame()
 
     def _treat_dots(self):
-        pass
+        """
+        Changing the distribution of dots (retweet count)
+        """
+        # Getting the number of tweets with 0 retweets
+        dots_no_rt = self.dots[self.dots["retweetCount"] == 0]
+        keep_dots_no_rt = dots_no_rt.iloc[:int(0.04 * len(dots_no_rt))]
+
+        self.dots_dis = self.dots_dis.append(keep_dots_no_rt)
+        self.dots_dis = self.dots_dis.append(self.dots[self.dots["retweetCount"] > 0])
+        self.dots_dis = self.dots_dis.drop_duplicates()
+
+        del self.dots
+        return self
 
     def plot_dots(self):
-        dots = self.dots[["retweetCount", "coordinates"]].dropna()
         fig, ax = plt.subplots()
 
-        for k, df_line in enumerate(dots.itertuples()):
+        print(f"number of dots : {len(self.dots_dis)}")
+
+        for k, df_line in enumerate(self.dots_dis.itertuples()):
             rt_count, coordinates = int(np.around(df_line.retweetCount)), df_line.coordinates
 
             coordinates = coordinates.replace("\'", "\"")
             coordinates = json.loads(coordinates)
 
             longitude, latitude = coordinates.values()
+            if (rt_count / 15) > 1:
+                plt.scatter(longitude, latitude, c='red')
+                continue
 
-            plt.scatter(longitude, latitude, color='purple')
-
-            if k > 1000:
-                break
+            plt.scatter(longitude, latitude, c=str(rt_count / 255.))
 
         plt.show()
 
-        #for i in range(len_values):
-            #    ax.scatter(x[i], y[i], color='purple')
 
-Mapping().plot_dots()
+Mapping()._treat_dots().plot_dots()
